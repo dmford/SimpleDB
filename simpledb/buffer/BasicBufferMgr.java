@@ -29,30 +29,29 @@ class BasicBufferMgr {
     * is called first.
     * @param numbuffs the number of buffer slots to allocate
     */
-   BasicBufferMgr(int numbuffs) {
+/*   BasicBufferMgr(int numbuffs) {
       bufferpool = new Buffer[numbuffs];
       numAvailable = numbuffs;
       for (int i=0; i<numbuffs; i++)
          bufferpool[i] = new Buffer();
-   }
+   }*/
    
    
-   BasicBufferMgr(){
+   BasicBufferMgr(int numbuffs){
 	   bufferMap = new HashMap<Block, Buffer>();
-	   
+	   numAvailable = numbuffs;
    }
    /**
     * Flushes the dirty buffers modified by the specified transaction.
     * @param txnum the transaction's id number
     */
-   synchronized void flushAll(int txnum) {
+/*   synchronized void flushAll(int txnum) {
       for (Buffer buff : bufferpool)
          if (buff.isModifiedBy(txnum))
          buff.flush();
-   }
+   }*/
    
-   
-   synchronized void flushAllMap(int txnum) {
+   synchronized void flushAll(int txnum) {
       for (Entry<Block, Buffer> entry : bufferMap.entrySet()){
     	  Buffer buff = entry.getValue();
           if (buff.isModifiedBy(txnum)){
@@ -121,27 +120,27 @@ class BasicBufferMgr {
       return numAvailable;
    }
    
-   private Buffer findExistingBuffer(Block blk) {
+/*   private Buffer findExistingBuffer(Block blk) {
       for (Buffer buff : bufferpool) {
          Block b = buff.block();
          if (b != null && b.equals(blk))
             return buff;
       }
       return null;
-   }
+   }*/
    
-   private Buffer findExistingBufferMap(Block blk) {
+   private Buffer findExistingBuffer(Block blk) {
 	      return bufferMap.get(blk);
    }   
    
-   private Buffer chooseUnpinnedBuffer() {
+/*   private Buffer chooseUnpinnedBuffer() {
       for (Buffer buff : bufferpool)
          if (!buff.isPinned())
          return buff;
       return null;
-   }
+   }*/
    
-   private Buffer chooseUnpinnedBufferMap() {
+   private Buffer chooseUnpinnedBuffer() {
       for (Entry<Block, Buffer> entry : bufferMap.entrySet()){
     	  Buffer buff = entry.getValue();
           if (!buff.isPinned()){
