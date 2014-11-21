@@ -1,6 +1,7 @@
 package simpledb.buffer;
 
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -12,10 +13,11 @@ import simpledb.file.*;
  *
  */
 class BasicBufferMgr {
-   private Buffer[] bufferpool;
-   private Map<Block, Buffer> bufferMap;
+
+   private Map<Block, Buffer> bufferPoolMap;
    private int numAvailable;
    private int numBuffers;
+   private int clockIndex = 0;
    
    /**
     * Creates a buffer manager having the specified number 
@@ -39,7 +41,7 @@ class BasicBufferMgr {
    
    
    BasicBufferMgr(int numbuffs){
-	   bufferMap = new HashMap<Block, Buffer>();
+	   bufferPoolMap = new LinkedHashMap<Block, Buffer>();
 	   numBuffers= numbuffs;
 	   numAvailable = numbuffs;
    }
@@ -54,7 +56,7 @@ class BasicBufferMgr {
 //   }
    
    synchronized void flushAll(int txnum) {
-      for (Entry<Block, Buffer> entry : bufferMap.entrySet()){
+      for (Entry<Block, Buffer> entry : bufferPoolMap.entrySet()){
     	  Buffer buff = entry.getValue();
           if (buff.isModifiedBy(txnum)){
               buff.flush();	  
@@ -92,7 +94,7 @@ class BasicBufferMgr {
          if (buff == null)
             return null;
          buff.assignToBlock(blk);
-   	     bufferMap.put(blk, buff);
+   	     bufferPoolMap.put(blk, buff);
       }
       if (!buff.isPinned())
          numAvailable--;
@@ -124,7 +126,7 @@ class BasicBufferMgr {
       if (buff == null)
          return null;
       buff.assignToNew(filename, fmtr);
-      bufferMap.put(buff.block(), buff);
+      bufferPoolMap.put(buff.block(), buff);
       numAvailable--;
       buff.pin();
       return buff;
@@ -167,8 +169,7 @@ class BasicBufferMgr {
 //   }
    
    private Buffer findExistingBuffer(Block blk) {
-	   //System.out.println("HEEEERRREEEE" + bufferMap.size() + " Avaliable Size: " + available());
-	      return bufferMap.get(blk);
+	      return bufferPoolMap.get(blk);
    }   
    
 //   private Buffer chooseUnpinnedBuffer() {
@@ -179,12 +180,19 @@ class BasicBufferMgr {
 //   }
       
    private Buffer chooseUnpinnedBuffer() {
-      if(numAvailable>0){
-    	  return new Buffer();
+      Collection<Buffer> buffers = bufferPoolMap.values();
+      int numRotations = 5;
+      for(int i = 0; i < numRotations * numBuffers; i++) {
+    	  Buffer buffer = buffers.toArray(new Buffer[numBuffers])[clockIndex];//I don't like this. We should find a better way to access the clockIndex'th buffer in the collection returns from bufferPoolMap.values
+    	  clockIndex = (clockIndex + 1) % numBuffers;
+    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
+    		  bufferPoolMap.remove(buffer.block());
+    		  return buffer;
+    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
+    		  buffer.decrementReferenceCount();
+    	  }
       }
-		else {
-   	//TODO: IMPLEMENT THE REPLACEMENT METHOD	bufferMap.remove(buff.block());
-   	}   
       return null;
    }   
+  
 }
