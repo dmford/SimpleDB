@@ -180,19 +180,23 @@ class BasicBufferMgr {
 //   }
       
    private Buffer chooseUnpinnedBuffer() {
-      Collection<Buffer> buffers = bufferPoolMap.values();
-      int numRotations = 5;
-      for(int i = 0; i < numRotations * numBuffers; i++) {
-    	  Buffer buffer = buffers.toArray(new Buffer[numBuffers])[clockIndex];//I don't like this. We should find a better way to access the clockIndex'th buffer in the collection returns from bufferPoolMap.values
-    	  clockIndex = (clockIndex + 1) % numBuffers;
-    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
-    		  bufferPoolMap.remove(buffer.block());
-    		  return buffer;
-    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
-    		  buffer.decrementReferenceCount();
-    	  }
-      }
-      return null;
+	  if(numAvailable > 0) {
+		  return new Buffer();
+	  } else {
+	      Collection<Buffer> buffers = bufferPoolMap.values();
+	      int numRotations = 5;
+	      for(int i = 0; i < numRotations * numBuffers; i++) {
+	    	  Buffer buffer = buffers.toArray(new Buffer[numBuffers])[clockIndex];//I don't like this. We should find a better way to access the clockIndex'th buffer in the collection returns from bufferPoolMap.values
+	    	  clockIndex = (clockIndex + 1) % numBuffers;
+	    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
+	    		  bufferPoolMap.remove(buffer.block());
+	    		  return buffer;
+	    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
+	    		  buffer.decrementReferenceCount();
+	    	  }
+	      }
+	      return null;
+	  }
    }   
   
 }
