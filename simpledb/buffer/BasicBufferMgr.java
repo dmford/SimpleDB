@@ -15,8 +15,10 @@ import simpledb.file.*;
 class BasicBufferMgr {
 
    private Map<Block, Buffer> bufferPoolMap;
+   private Buffer[] bufferPool;
    private int numAvailable;
    private int numBuffers;
+   private int numRotations = 5;
    private int clockIndex = 0;
    
    /**
@@ -40,10 +42,16 @@ class BasicBufferMgr {
 //   }
    
    
-   BasicBufferMgr(int numbuffs){
+   BasicBufferMgr(int numbuffs, int numRotations){
 	   bufferPoolMap = new LinkedHashMap<Block, Buffer>();
 	   numBuffers= numbuffs;
 	   numAvailable = numbuffs;
+	   this.numRotations = numRotations;
+	   
+	   bufferPool = new Buffer[numbuffs];
+	   for (int i = 0; i < numbuffs; i++) {
+		   bufferPool[i] = new Buffer();
+	   }
    }
    /**
     * Flushes the dirty buffers modified by the specified transaction.
@@ -180,23 +188,42 @@ class BasicBufferMgr {
 //   }
       
    private Buffer chooseUnpinnedBuffer() {
+	  System.out.print("GClock policy used");
 	  if(numAvailable > 0) {
-		  return new Buffer();
+		  for(Buffer buffer: bufferPool) {
+			  if(buffer.block() == null) {
+				  return buffer;
+			  }
+		  }
+		  return null;
 	  } else {
 	      Collection<Buffer> buffers = bufferPoolMap.values();
-	      int numRotations = 5;
 	      for(int i = 0; i < numRotations * numBuffers; i++) {
 	    	  Buffer buffer = buffers.toArray(new Buffer[numBuffers])[clockIndex];//I don't like this. We should find a better way to access the clockIndex'th buffer in the collection returns from bufferPoolMap.values
 	    	  clockIndex = (clockIndex + 1) % numBuffers;
 	    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
 	    		  bufferPoolMap.remove(buffer.block());
+	    		  System.out.println(", Block replaced: " + buffer.block().toString());
 	    		  return buffer;
 	    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
 	    		  buffer.decrementReferenceCount();
 	    	  }
 	      }
+	      System.out.println();
 	      return null;
 	  }
    }   
-  
+
+   private void printBufferPoolDetails() {//TODO after Task 1.
+	   StringBuilder sBuilder = new StringBuilder();
+	   for(Buffer buffer: bufferPool) {
+		   if(buffer.block() != null) {
+			   sBuilder.append(buffer.block().toString() + " ");
+		   } else {
+			   sBuilder.append("- ");
+		   }
+	   }
+	   sBuilder.append("\n");
+	   System.out.println(sBuilder.toString());
+   }
 }

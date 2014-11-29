@@ -6,8 +6,6 @@ import simpledb.tx.Transaction;
 import simpledb.log.LogMgr;
 import simpledb.metadata.MetadataMgr;
 import simpledb.planner.*;
-import simpledb.opt.HeuristicQueryPlanner;
-import simpledb.index.planner.IndexUpdatePlanner;
 
 /**
  * The class that provides system-wide static global values.
@@ -36,18 +34,18 @@ public class SimpleDB {
     * This method is called during system startup.
     * @param dirname the name of the database directory
     */
-   public static void init(String dirname) {
-      initFileLogAndBufferMgr(dirname);
-      Transaction tx = new Transaction();
-      boolean isnew = fm.isNew();
-      if (isnew)
-         System.out.println("creating new database");
-      else {
-         System.out.println("recovering existing database");
-         tx.recover();
-      }
-      initMetadataMgr(isnew, tx);
-      tx.commit();
+   public static void init(String dirname, int gClock) {
+	   initFileLogAndBufferMgr(dirname, gClock);
+	   Transaction tx = new Transaction();
+	   boolean isnew = fm.isNew();
+	   if (isnew)
+	      System.out.println("creating new database");
+	   else {
+		   System.out.println("recovering existing database");
+	       tx.recover();
+	   }
+	   initMetadataMgr(isnew, tx);
+	   tx.commit();
    }
    
    // The following initialization methods are useful for 
@@ -75,9 +73,9 @@ public class SimpleDB {
     * Initializes the file, log, and buffer managers.
     * @param dirname the name of the database directory
     */
-   public static void initFileLogAndBufferMgr(String dirname) {
+   public static void initFileLogAndBufferMgr(String dirname, int gClock) {
       initFileAndLogMgr(dirname);
-      bm = new BufferMgr(BUFFER_SIZE);
+      bm = new BufferMgr(BUFFER_SIZE, gClock);
    }
    
    /**
