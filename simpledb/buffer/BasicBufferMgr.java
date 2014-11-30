@@ -1,6 +1,5 @@
 package simpledb.buffer;
 
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -96,6 +95,7 @@ class BasicBufferMgr {
 //   }
    
    synchronized Buffer pin(Block blk) {
+	  System.out.println("Pinning block: " + blk.toString());//TODO
       Buffer buff = findExistingBuffer(blk);
       if (buff == null) {
          buff = chooseUnpinnedBuffer();
@@ -130,6 +130,7 @@ class BasicBufferMgr {
 //   }   
    
    synchronized Buffer pinNew(String filename, PageFormatter fmtr) {
+	  System.out.println("Pinning New");//TODO
       Buffer buff = chooseUnpinnedBuffer();
       if (buff == null)
          return null;
@@ -151,11 +152,13 @@ class BasicBufferMgr {
 //   }
    
    synchronized void unpin(Buffer buff) {
-	      buff.unpin();
-	      if (!buff.isPinned()){
-	    	  numAvailable++;
-	      }
-	   }   
+	   System.out.println("Unpinning");//TODO
+	   buff.unpin();
+	   if (!buff.isPinned()){
+		   numAvailable++;
+		   bufferPoolMap.remove(buff.block());
+	   }
+   }   
    
    /**
     * Returns the number of available (i.e. unpinned) buffers.
@@ -188,18 +191,20 @@ class BasicBufferMgr {
 //   }
       
    private Buffer chooseUnpinnedBuffer() {
-	  System.out.print("GClock policy used");
+	  System.out.println("GClock policy used");
+	  System.out.println("numAvailable: " + numAvailable);//TODO
 	  if(numAvailable > 0) {
 		  for(Buffer buffer: bufferPool) {
-			  if(buffer.block() == null) {
+			  if(buffer.block() == null || !bufferPoolMap.containsKey(buffer.block())) {
+				  System.out.println("found an unused buffer");//TODO
 				  return buffer;
 			  }
 		  }
+		  System.out.println("Num available greater than 0, failed to find useable one.");//TODO
 		  return null;
 	  } else {
-	      Collection<Buffer> buffers = bufferPoolMap.values();
 	      for(int i = 0; i < numRotations * numBuffers; i++) {
-	    	  Buffer buffer = buffers.toArray(new Buffer[numBuffers])[clockIndex];//I don't like this. We should find a better way to access the clockIndex'th buffer in the collection returns from bufferPoolMap.values
+	    	  Buffer buffer = bufferPool[clockIndex];
 	    	  clockIndex = (clockIndex + 1) % numBuffers;
 	    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
 	    		  bufferPoolMap.remove(buffer.block());
@@ -209,7 +214,7 @@ class BasicBufferMgr {
 	    		  buffer.decrementReferenceCount();
 	    	  }
 	      }
-	      System.out.println();
+	      System.out.println("No useable buffer available.");//TODO
 	      return null;
 	  }
    }   
