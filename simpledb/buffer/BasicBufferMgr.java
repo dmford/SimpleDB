@@ -107,6 +107,7 @@ class BasicBufferMgr {
       if (!buff.isPinned())
          numAvailable--;
       buff.pin();
+      printBufferPoolDetails();
       return buff;
    }
    
@@ -138,6 +139,7 @@ class BasicBufferMgr {
       bufferPoolMap.put(buff.block(), buff);
       numAvailable--;
       buff.pin();
+      printBufferPoolDetails();
       return buff;
    }
    
@@ -156,8 +158,8 @@ class BasicBufferMgr {
 	   buff.unpin();
 	   if (!buff.isPinned()){
 		   numAvailable++;
-		   bufferPoolMap.remove(buff.block());
 	   }
+	   printBufferPoolDetails();
    }   
    
    /**
@@ -192,37 +194,38 @@ class BasicBufferMgr {
       
    private Buffer chooseUnpinnedBuffer() {
 	  System.out.println("GClock policy used");
-	  System.out.println("numAvailable: " + numAvailable);//TODO
-	  if(numAvailable > 0) {
-		  for(Buffer buffer: bufferPool) {
-			  if(buffer.block() == null || !bufferPoolMap.containsKey(buffer.block())) {
-				  System.out.println("found an unused buffer");//TODO
-				  return buffer;
-			  }
+
+	  for(Buffer buffer: bufferPool) {
+		  if(buffer.block() == null) {
+			  return buffer;
 		  }
-		  System.out.println("Num available greater than 0, failed to find useable one.");//TODO
-		  return null;
-	  } else {
-	      for(int i = 0; i < numRotations * numBuffers; i++) {
-	    	  Buffer buffer = bufferPool[clockIndex];
-	    	  clockIndex = (clockIndex + 1) % numBuffers;
-	    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
-	    		  bufferPoolMap.remove(buffer.block());
-	    		  System.out.println(", Block replaced: " + buffer.block().toString());
-	    		  return buffer;
-	    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
-	    		  buffer.decrementReferenceCount();
-	    	  }
-	      }
-	      System.out.println("No useable buffer available.");//TODO
-	      return null;
 	  }
+	  
+      for(int i = 0; i <= numRotations * numBuffers + 1; i++) {
+    	  Buffer buffer = bufferPool[clockIndex];
+    	  incrementClockIndex();
+    	  if(!buffer.isPinned() && buffer.getReferenceCount() == 0) {
+    		  bufferPoolMap.remove(buffer.block());
+    		  System.out.println(", Block replaced: " + buffer.block().toString());
+    		  return buffer;
+    	  } else if(!buffer.isPinned() && buffer.getReferenceCount() > 0) {
+    		  buffer.decrementReferenceCount();
+    	  }
+      }
+      
+      System.out.println("Choose Unpinned Buffer has returned null. This is unexpected.");
+      return null;
+	  
    }   
 
-   private void printBufferPoolDetails() {//TODO after Task 1.
+   private void incrementClockIndex(){
+	   clockIndex = (clockIndex + 1) % numBuffers;
+   }
+   
+   private void printBufferPoolDetails() {
 	   StringBuilder sBuilder = new StringBuilder();
 	   for(Buffer buffer: bufferPool) {
-		   if(buffer.block() != null) {
+		   if(buffer.block() != null && bufferPoolMap.containsKey(buffer.block())) {
 			   sBuilder.append(buffer.block().toString() + " ");
 		   } else {
 			   sBuilder.append("- ");
@@ -230,5 +233,11 @@ class BasicBufferMgr {
 	   }
 	   sBuilder.append("\n");
 	   System.out.println(sBuilder.toString());
+	   StringBuilder blockPinAndRefCountStringBuilder = new StringBuilder();
+	   for(Block block: bufferPoolMap.keySet()) {
+		   blockPinAndRefCountStringBuilder.append(block.toString() + ". Pins: " + bufferPoolMap.get(block).getPinCount() + ". Reference count: " + bufferPoolMap.get(block).getReferenceCount() + "\n");
+	   }
+	   System.out.println(blockPinAndRefCountStringBuilder.toString());
+	   System.out.println("Number of buffers available: " + numAvailable);
    }
 }

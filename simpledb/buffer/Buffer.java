@@ -197,4 +197,13 @@ public class Buffer {
    public void decrementReferenceCount() {
 	   referenceCount--;
    }
+   
+   public int getPinCount() {
+	   return pins;
+   }
+   
+   @Override
+   public String toString() {
+	   return "{" + blk.toString() + " " + pins + " " + referenceCount + " " + logSequenceNumber + " " + modifiedBy + "}";
+   }
 }
