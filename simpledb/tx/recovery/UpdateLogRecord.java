@@ -34,10 +34,10 @@ public class UpdateLogRecord implements LogRecord {
 
   private int txnum, offset;
 
-  private String newVal;
-
-  private String oldVal;
-
+  private int saveBlockNum; 
+  
+  private String val;
+  
   private Block blk;
 
    
@@ -58,7 +58,7 @@ public class UpdateLogRecord implements LogRecord {
 
     */
 
-  public UpdateLogRecord(int txnum, Block blk, int offset, String oldVal, String newVal) {
+  public UpdateLogRecord(int txnum, Block blk, int offset, int saveBlockNum, String oldVal) {
 
       this.txnum = txnum;
 
@@ -66,10 +66,9 @@ public class UpdateLogRecord implements LogRecord {
 
       this.offset = offset;
 
-      this.oldVal = oldVal;
+      this.saveBlockNum = saveBlockNum;
 
-      this.newVal = newVal;
-
+      this.val = oldVal;
   }
 
 
@@ -96,9 +95,7 @@ public class UpdateLogRecord implements LogRecord {
 
       offset = rec.nextInt();
 
-      oldVal = rec.nextString();
-
-      newVal = rec.nextString();
+      saveBlockNum = rec.nextInt();
 
   }
 
@@ -109,7 +106,7 @@ public class UpdateLogRecord implements LogRecord {
 public int writeToLog() {
 
 	Object[] rec = new Object[] {UPDATE, txnum, blk.fileName(),
-        blk.number(), offset, oldVal, newVal};
+        blk.number(), offset, saveBlockNum};
 
 return logMgr.append(rec);
 
@@ -145,7 +142,7 @@ BufferMgr buffMgr = SimpleDB.bufferMgr();
 
 Buffer buff = buffMgr.pin(blk);
 
-buff.setString(offset, oldVal, txnum, -1);
+buff.setString(offset, val, txnum, -1);
 
 buffMgr.unpin(buff);
 
