@@ -12,6 +12,7 @@ import java.util.*;
  */
 public class RecoveryMgr {
    private int txnum;
+   Block recoveryBlock;
 
    /**
     * Creates a recovery manager for the specified transaction.
@@ -19,6 +20,7 @@ public class RecoveryMgr {
     */
    public RecoveryMgr(int txnum) {
       this.txnum = txnum;
+      recoveryBlock = new Block("Saved.log", 0);
       new StartRecord(txnum).writeToLog();
    }
 
@@ -66,9 +68,11 @@ public class RecoveryMgr {
       Block blk = buff.block();
       if (isTempBlock(blk))
          return -1;
-      else
-         /*return new SetIntRecord(txnum, blk, offset, oldval).writeToLog();*/
-    	  return new UpdateLogRecord(txnum, blk, offset, "" + oldVal, "" + newval).writeToLog();
+      else {
+    	  int lsn =  writeUpdate(buff, txnum, blk, offset, oldVal + "");
+    	  buff.setInt(offset, newval, txnum, lsn);
+    	  return lsn;
+      }
    }
 
    /**
@@ -84,11 +88,18 @@ public class RecoveryMgr {
       Block blk = buff.block();
       if (isTempBlock(blk))
          return -1;
-      else
-         /*return new SetStringRecord(txnum, blk, offset, oldval).writeToLog();*/
-    	 return new UpdateLogRecord(txnum, blk, offset, oldVal, newval).writeToLog();
+      else {
+    	 int lsn = writeUpdate(buff, txnum, blk, offset, oldVal);
+    	 buff.setString(offset, newval, txnum, lsn);
+    	 return lsn;
+      }
    }
 
+   public int writeUpdate(Buffer buff, int txnum, Block block, int offset, String val) {
+	   buff.saveBlock(recoveryBlock);
+	   return new UpdateLogRecord(txnum, block, offset, recoveryBlock.number(), val).writeToLog();
+   }
+   
    /**
     * Rolls back the transaction.
     * The method iterates through the log records,
