@@ -62,12 +62,13 @@ public class RecoveryMgr {
     * @param newval the value to be written
     */
    public int setInt(Buffer buff, int offset, int newval) {
-      int oldval = buff.getInt(offset);
+      int oldVal = buff.getInt(offset);
       Block blk = buff.block();
       if (isTempBlock(blk))
          return -1;
       else
-         return new SetIntRecord(txnum, blk, offset, oldval).writeToLog();
+         /*return new SetIntRecord(txnum, blk, offset, oldval).writeToLog();*/
+    	  return new UpdateLogRecord(txnum, blk, offset, "" + oldVal, "" + newval).writeToLog();
    }
 
    /**
@@ -79,12 +80,13 @@ public class RecoveryMgr {
     * @param newval the value to be written
     */
    public int setString(Buffer buff, int offset, String newval) {
-      String oldval = buff.getString(offset);
+      String oldVal = buff.getString(offset);
       Block blk = buff.block();
       if (isTempBlock(blk))
          return -1;
       else
-         return new SetStringRecord(txnum, blk, offset, oldval).writeToLog();
+         /*return new SetStringRecord(txnum, blk, offset, oldval).writeToLog();*/
+    	 return new UpdateLogRecord(txnum, blk, offset, oldVal, newval).writeToLog();
    }
 
    /**
